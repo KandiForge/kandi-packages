@@ -5,7 +5,8 @@
   "license": "MIT",
   "author": "KandiForge",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
