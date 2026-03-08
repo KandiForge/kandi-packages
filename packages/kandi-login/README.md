@@ -47,6 +47,15 @@ Works in **Tauri**, **Electron**, and **Web** with **MUI**, **Tailwind**, or **h
 
 **Key concept:** The client-side React components (`kandi-login`) know nothing about your database. They store JWTs locally and talk to your server over HTTP. The server-side module (`kandi-login/server`) handles all OAuth complexity. You provide a `UserAdapter` — 5 database query functions — and kandi-login does everything else.
 
+### Docs
+
+| Guide | Description |
+|-------|-------------|
+| **[Database Setup](./docs/database-setup.md)** | Migration scripts + adapter examples for PostgreSQL, Prisma, Drizzle, MongoDB |
+| **[Architecture](./docs/architecture.md)** | System overview, OAuth flow diagrams, JWT structure, encryption details |
+| **[Examples](./docs/examples.md)** | Complete implementations: Next.js + Supabase, Express + Prisma, Tauri, test personas |
+| **[Migrations](./docs/migrations/)** | Ready-to-run SQL, Prisma schema, Drizzle schema, Mongoose schema |
+
 ---
 
 ## Quick Start
@@ -1184,6 +1193,12 @@ The following XML block is a complete specification for generating a kandi-login
     <description>
       Create a users table with columns for each OAuth provider's subject ID.
       Account linking works by matching on email across providers.
+      Ready-to-run migration scripts are in docs/migrations/:
+        - PostgreSQL/Supabase: 001_users_table.sql
+        - Prisma: 001_users_table.prisma
+        - Drizzle: 001_users_table.drizzle.ts
+        - MongoDB/Mongoose: 001_users_table.mongo.ts
+      Full setup guide: docs/database-setup.md
     </description>
     <table name="users">
       <column name="id" type="uuid" primary-key="true" />
@@ -1458,8 +1473,10 @@ describe('Auth', () => {
 
 Detailed architecture diagrams, flow charts, and additional implementation examples are in the [`docs/`](./docs/) folder:
 
+- **[Database Setup](./docs/database-setup.md)** — Migration scripts and adapter implementations for PostgreSQL, Prisma, Drizzle, MongoDB
 - **[Architecture](./docs/architecture.md)** — System overview, module dependency graph, OAuth flow diagrams, JWT structure, encryption details, platform detection
 - **[Examples](./docs/examples.md)** — Complete working implementations for Next.js + Supabase, Express + Prisma, Tauri desktop, and test persona integration tests
+- **[Migrations](./docs/migrations/)** — Ready-to-run database scripts: [`001_users_table.sql`](./docs/migrations/001_users_table.sql), [`.prisma`](./docs/migrations/001_users_table.prisma), [`.drizzle.ts`](./docs/migrations/001_users_table.drizzle.ts), [`.mongo.ts`](./docs/migrations/001_users_table.mongo.ts)
 
 ---
 
