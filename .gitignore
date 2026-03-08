@@ -1,8 +1,12 @@
 .kandi/
+.supersmall/
 node_modules/
 dist/
+.next/
 *.tsbuildinfo
 .env
+.env.local
 .env.*
 !.env.example
 .DS_Store
+.vercel
