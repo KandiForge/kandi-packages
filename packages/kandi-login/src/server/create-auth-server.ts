@@ -58,6 +58,11 @@ import {
   exchangeFacebookCode,
   fetchFacebookProfile,
 } from './providers/facebook.js';
+import {
+  createSeedHandler,
+  createListPersonasHandler,
+  createLoginAsHandler,
+} from './test-personas.js';
 
 function getQueryParam(
   query: Record<string, string | string[] | undefined>,
@@ -465,6 +470,26 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
     res.json({ success: true });
   }
 
+  // --- Test Persona Handlers (guarded) ---
+
+  const testHandlers = config.enableTestPersonas
+    ? {
+        handleSeedPersonas: createSeedHandler(
+          config.userAdapter,
+          config.jwt,
+          config.testTokenEncryptionSecret ?? config.jwt.secret,
+          config.testPersonas,
+        ),
+        handleListPersonas: createListPersonasHandler(config.testPersonas),
+        handleLoginAs: createLoginAsHandler(
+          config.userAdapter,
+          config.jwt,
+          config.testTokenEncryptionSecret ?? config.jwt.secret,
+          config.testPersonas,
+        ),
+      }
+    : {};
+
   // --- Public API ---
 
   return {
@@ -476,5 +501,6 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
     handleLogout,
     verifyToken: (token: string) => verifyAccessToken(config.jwt, token),
     signTokens: signTokensForUser,
+    ...testHandlers,
   };
 }

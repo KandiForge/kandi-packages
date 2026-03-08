@@ -3,7 +3,7 @@
   "private": true,
   "description": "Reusable open-source packages from KandiForge",
   "license": "MIT",
-  "author": "Abstract Class Consulting Inc.",
+  "author": "KandiForge",
   "workspaces": [
     "packages/*"
   ],

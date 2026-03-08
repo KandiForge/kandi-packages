@@ -1247,6 +1247,19 @@ The following XML block is a complete specification for generating a kandi-login
   </env>
 
   <tests>
+    <test-personas enabled="development-only">
+      <persona id="admin-alex" name="Alex Admin" role="admin" email="alex@test.kandi.dev" />
+      <persona id="designer-dana" name="Dana Designer" role="user" email="dana@test.kandi.dev" />
+      <persona id="viewer-val" name="Val Viewer" role="viewer" email="val@test.kandi.dev" />
+      <persona id="new-user-naya" name="Naya Newbie" role="user" email="naya@test.kandi.dev" />
+      <endpoints>
+        POST /test/seed — creates personas in DB via UserAdapter
+        GET /test/personas — lists available personas
+        POST /test/login-as { personaId } — signs real JWTs for persona
+      </endpoints>
+      <token-encryption>AES-256-GCM, same pattern as production</token-encryption>
+    </test-personas>
+
     <server-tests>
       <test name="login-redirect">
         GET /auth/login?provider=google → expect 302 redirect to Hello.coop/authorize
@@ -1294,6 +1307,26 @@ The following XML block is a complete specification for generating a kandi-login
         findByProviderId("apple", "apple-sub") → returns same user
       </test>
     </adapter-tests>
+    <persona-tests>
+      <test name="seed-personas">
+        POST /test/seed → expect 200 { success: true, seeded: [...], total: 4 }
+      </test>
+      <test name="list-personas">
+        GET /test/personas → expect 200 { personas: [{ id, name, email, role }...] }
+      </test>
+      <test name="login-as-valid">
+        POST /test/login-as { personaId: "admin-alex" }
+        → expect 200 { access_token, refresh_token, expires_in, persona: { role: "admin" } }
+      </test>
+      <test name="login-as-unknown">
+        POST /test/login-as { personaId: "nobody" }
+        → expect 404 { error: "Unknown persona", available: [...] }
+      </test>
+      <test name="login-as-token-validates">
+        Login as admin-alex, then GET /auth/validate with Bearer token
+        → expect 200 { valid: true, user: { email: "alex@test.kandi.dev" } }
+      </test>
+    </persona-tests>
     <client-tests>
       <test name="auth-provider-renders">
         Render AuthProvider with config → children render without error
@@ -1321,6 +1354,115 @@ The following XML block is a complete specification for generating a kandi-login
 
 ---
 
+## Test Personas
+
+kandi-login includes a test persona system for development and integration testing. Test personas are real users created via your `UserAdapter` with encrypted mock OAuth tokens stored using **AES-256-GCM** — the same encryption pattern used by KandiForge's production API servers.
+
+### Enable
+
+```ts
+const auth = createAuthServer({
+  // ... jwt, providers, userAdapter
+  enableTestPersonas: true,  // MUST be explicit. Never enable in production.
+});
+```
+
+### Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/test/seed` | Create test personas in DB + generate encrypted tokens |
+| GET | `/test/personas` | List available personas (no secrets) |
+| POST | `/test/login-as` `{ personaId }` | Sign real JWTs for a persona |
+
+These endpoints **only exist** when `enableTestPersonas: true`. They are not mounted otherwise.
+
+### Built-in Personas
+
+| ID | Name | Role | Email |
+|----|------|------|-------|
+| `admin-alex` | Alex Admin | admin | alex@test.kandi.dev |
+| `designer-dana` | Dana Designer | user | dana@test.kandi.dev |
+| `viewer-val` | Val Viewer | viewer | val@test.kandi.dev |
+| `new-user-naya` | Naya Newbie | user | naya@test.kandi.dev |
+
+### Usage
+
+```bash
+# Seed personas into DB
+curl -X POST http://localhost:3001/test/seed
+
+# List personas
+curl http://localhost:3001/test/personas
+
+# Login as admin — returns real JWTs
+curl -X POST http://localhost:3001/test/login-as \
+  -H "Content-Type: application/json" \
+  -d '{"personaId": "admin-alex"}'
+# → { "access_token": "eyJ...", "refresh_token": "eyJ...", "expires_in": 3600, "persona": {...} }
+```
+
+The returned `access_token` is a real JWT — identical to what OAuth login produces. Use it with `/auth/validate`, `/auth/refresh`, or any endpoint that accepts Bearer tokens.
+
+### Custom Personas
+
+```ts
+const auth = createAuthServer({
+  enableTestPersonas: true,
+  testPersonas: [
+    { id: 'qa-lead', name: 'QA Lead', email: 'qa@mycompany.com', role: 'admin' },
+    { id: 'free-tier', name: 'Free User', email: 'free@mycompany.com', role: 'free' },
+  ],
+});
+```
+
+### How Tokens Are Stored
+
+Test persona tokens are encrypted at rest using AES-256-GCM:
+- **Key**: SHA-256 hash of `testTokenEncryptionSecret` (defaults to `jwt.secret`)
+- **IV**: 16 random bytes per encryption
+- **Auth tag**: 16 bytes for integrity verification
+- **Format**: `base64(iv + authTag + ciphertext)`
+
+Even in development, tokens are never stored in plaintext.
+
+### Integration Test Example
+
+```ts
+describe('Auth', () => {
+  beforeAll(async () => {
+    await fetch('http://localhost:3001/test/seed', { method: 'POST' });
+  });
+
+  it('admin can access protected resource', async () => {
+    const login = await fetch('http://localhost:3001/test/login-as', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personaId: 'admin-alex' }),
+    });
+    const { access_token } = await login.json();
+
+    const res = await fetch('http://localhost:3001/auth/validate', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    const data = await res.json();
+    expect(data.valid).toBe(true);
+    expect(data.user.email).toBe('alex@test.kandi.dev');
+  });
+});
+```
+
+---
+
+## Documentation
+
+Detailed architecture diagrams, flow charts, and additional implementation examples are in the [`docs/`](./docs/) folder:
+
+- **[Architecture](./docs/architecture.md)** — System overview, module dependency graph, OAuth flow diagrams, JWT structure, encryption details, platform detection
+- **[Examples](./docs/examples.md)** — Complete working implementations for Next.js + Supabase, Express + Prisma, Tauri desktop, and test persona integration tests
+
+---
+
 ## License
 
-MIT - Abstract Class Consulting Inc.
+MIT - KandiForge

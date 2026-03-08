@@ -125,7 +125,7 @@
     "directory": "packages/kandi-login"
   },
   "homepage": "https://github.com/KandiForge/kandi-packages/tree/main/packages/kandi-login#readme",
-  "author": "Abstract Class Consulting Inc.",
+  "author": "KandiForge",
   "engines": {
     "node": ">=18.0.0"
   }

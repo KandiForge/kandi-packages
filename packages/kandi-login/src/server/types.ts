@@ -110,6 +110,26 @@ export interface UserAdapter {
 }
 
 // ---------------------------------------------------------------------------
+// Test Personas
+// ---------------------------------------------------------------------------
+
+/** Definition of a test persona for development/testing */
+export interface TestPersonaDefinition {
+  /** Unique persona identifier (e.g., "admin-alex") */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Email address */
+  email: string;
+  /** Role (e.g., "admin", "user", "viewer") */
+  role: string;
+  /** Avatar URL (null for generated avatar) */
+  avatarUrl?: string | null;
+  /** OAuth provider to simulate (default: "test") */
+  provider?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Auth Server Configuration
 // ---------------------------------------------------------------------------
 
@@ -161,6 +181,21 @@ export interface AuthServerConfig {
    * Use for provisioning (creating teams, sending welcome emails, etc.).
    */
   onUserCreated?: (user: KandiLoginUser, provider: string) => Promise<void>;
+
+  /**
+   * Enable test persona endpoints (/test/seed, /test/personas, /test/login-as).
+   * MUST be explicitly set to true. Never enable in production.
+   */
+  enableTestPersonas?: boolean;
+
+  /** Custom test persona definitions (overrides the built-in 4 personas) */
+  testPersonas?: TestPersonaDefinition[];
+
+  /**
+   * Encryption secret for storing test persona tokens at rest (AES-256-GCM).
+   * Defaults to jwt.secret if not provided.
+   */
+  testTokenEncryptionSecret?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -217,6 +252,15 @@ export interface AuthServer {
 
   /** Utility: sign tokens for a user */
   signTokens: (user: KandiLoginUser) => Promise<{ access_token: string; refresh_token: string }>;
+
+  /** POST /test/seed — Seed test personas (only when enableTestPersonas: true) */
+  handleSeedPersonas?: AuthHandler;
+
+  /** GET /test/personas — List test personas (only when enableTestPersonas: true) */
+  handleListPersonas?: AuthHandler;
+
+  /** POST /test/login-as — Login as a test persona (only when enableTestPersonas: true) */
+  handleLoginAs?: AuthHandler;
 }
 
 // ---------------------------------------------------------------------------

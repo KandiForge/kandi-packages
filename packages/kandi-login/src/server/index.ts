@@ -12,6 +12,12 @@ export {
 // Security utilities
 export { generateState, verifyState, generateNonce, extractBearerToken } from './security.js';
 
+// Encryption utilities
+export { encrypt, decrypt } from './encryption.js';
+
+// Test personas
+export { DEFAULT_PERSONAS, seedTestPersonas } from './test-personas.js';
+
 // Provider utilities (for advanced use)
 export {
   buildHelloCoopAuthUrl,
@@ -44,6 +50,7 @@ export type {
   ProviderCredentials,
   OAuthProfile,
   UserAdapter,
+  TestPersonaDefinition,
   // Legacy
   CallbackHandlerConfig,
   CallbackRequest,
