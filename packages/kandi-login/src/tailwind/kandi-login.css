@@ -1,0 +1,83 @@
+/**
+ * kandi-login CSS custom properties
+ * Override these variables to theme the Tailwind login components.
+ *
+ * Usage:
+ *   import 'kandi-login/tailwind/kandi-login.css';
+ *
+ *   // Then override in your own CSS:
+ *   :root {
+ *     --kl-primary: #3b82f6;
+ *     --kl-radius: 8px;
+ *   }
+ */
+
+:root {
+  /* Colors */
+  --kl-primary: #667eea;
+  --kl-primary-hover: #5a6fd6;
+  --kl-text: #1a1a2e;
+  --kl-text-secondary: #6b7280;
+  --kl-text-on-primary: #ffffff;
+  --kl-bg: #ffffff;
+  --kl-bg-elevated: #f9fafb;
+  --kl-border: rgba(0, 0, 0, 0.1);
+  --kl-border-hover: rgba(0, 0, 0, 0.2);
+  --kl-error: #ef4444;
+  --kl-error-bg: #fef2f2;
+
+  /* Glassmorphism */
+  --kl-glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(245, 245, 245, 0.6) 100%);
+  --kl-glass-blur: blur(32px) saturate(160%);
+  --kl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --kl-glass-shadow-hover: 0 10px 40px 0 rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Menu */
+  --kl-menu-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 250, 0.9) 100%);
+  --kl-menu-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.15);
+
+  /* Shape */
+  --kl-radius: 6px;
+  --kl-chip-height: 32px;
+
+  /* Avatar */
+  --kl-avatar-default-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --kl-text: #e5e7eb;
+    --kl-text-secondary: #9ca3af;
+    --kl-bg: #111827;
+    --kl-bg-elevated: #1f2937;
+    --kl-border: rgba(255, 255, 255, 0.1);
+    --kl-border-hover: rgba(255, 255, 255, 0.2);
+    --kl-error-bg: #451a1a;
+
+    --kl-glass-bg: linear-gradient(135deg, rgba(45, 45, 45, 0.6) 0%, rgba(25, 25, 25, 0.4) 100%);
+    --kl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --kl-glass-shadow-hover: 0 10px 40px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    --kl-menu-bg: linear-gradient(135deg, rgba(30, 30, 30, 0.9) 0%, rgba(20, 20, 20, 0.85) 100%);
+    --kl-menu-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Dark mode class-based (for manual theme switching) */
+.dark {
+  --kl-text: #e5e7eb;
+  --kl-text-secondary: #9ca3af;
+  --kl-bg: #111827;
+  --kl-bg-elevated: #1f2937;
+  --kl-border: rgba(255, 255, 255, 0.1);
+  --kl-border-hover: rgba(255, 255, 255, 0.2);
+  --kl-error-bg: #451a1a;
+
+  --kl-glass-bg: linear-gradient(135deg, rgba(45, 45, 45, 0.6) 0%, rgba(25, 25, 25, 0.4) 100%);
+  --kl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --kl-glass-shadow-hover: 0 10px 40px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --kl-menu-bg: linear-gradient(135deg, rgba(30, 30, 30, 0.9) 0%, rgba(20, 20, 20, 0.85) 100%);
+  --kl-menu-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5);
+}

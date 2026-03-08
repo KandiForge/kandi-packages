@@ -1,0 +1,136 @@
+/// kandi-login Tauri OAuth commands
+///
+/// Copy this file to src-tauri/src/commands/auth.rs
+/// Then register the commands in your Tauri app builder:
+///
+///   .invoke_handler(tauri::generate_handler![
+///       commands::auth::start_oauth,
+///       commands::auth::store_token,
+///       commands::auth::get_token,
+///       commands::auth::clear_tokens,
+///   ])
+///
+/// Dependencies (add to src-tauri/Cargo.toml):
+///   url = "2"
+///   serde = { version = "1", features = ["derive"] }
+///   keyring = "3"
+
+use serde::Serialize;
+use std::collections::HashMap;
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl};
+use tauri::webview::WebviewWindowBuilder;
+use url::Url;
+
+#[derive(Clone, Serialize)]
+struct OAuthCallbackPayload {
+    access_token: Option<String>,
+    refresh_token: Option<String>,
+    error: Option<String>,
+}
+
+/// Opens an in-app webview for OAuth sign-in.
+/// The auth server redirects to {{DEEP_LINK_SCHEME}}://auth/callback with tokens.
+#[tauri::command]
+pub async fn start_oauth(app: AppHandle, provider: Option<String>) -> Result<(), String> {
+    // Close any existing OAuth window
+    if let Some(existing) = app.get_webview_window("oauth") {
+        let _ = existing.close();
+    }
+
+    let mut auth_url = Url::parse("{{AUTH_SERVER_URL}}/api/mobile/login")
+        .map_err(|e| e.to_string())?;
+
+    {
+        let mut pairs = auth_url.query_pairs_mut();
+        pairs.append_pair("return_url", "{{DEEP_LINK_SCHEME}}://auth/callback");
+        if let Some(ref p) = provider {
+            pairs.append_pair("provider", p);
+        }
+    }
+
+    let app_handle = app.clone();
+
+    WebviewWindowBuilder::new(&app, "oauth", WebviewUrl::External(auth_url))
+        .title("Sign In")
+        .inner_size(500.0, 700.0)
+        .center()
+        .resizable(false)
+        .on_navigation(move |url| {
+            let url_str = url.as_str();
+            if url_str.starts_with("{{DEEP_LINK_SCHEME}}://") {
+                let payload = if let Ok(parsed) = Url::parse(url_str) {
+                    let params: HashMap<String, String> = parsed
+                        .query_pairs()
+                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .collect();
+
+                    if let Some(error) = params.get("error") {
+                        OAuthCallbackPayload {
+                            access_token: None,
+                            refresh_token: None,
+                            error: Some(error.clone()),
+                        }
+                    } else {
+                        OAuthCallbackPayload {
+                            access_token: params.get("access_token").cloned(),
+                            refresh_token: params.get("refresh_token").cloned(),
+                            error: None,
+                        }
+                    }
+                } else {
+                    OAuthCallbackPayload {
+                        access_token: None,
+                        refresh_token: None,
+                        error: Some("Failed to parse callback URL".into()),
+                    }
+                };
+
+                let _ = app_handle.emit("oauth-callback", payload);
+                if let Some(window) = app_handle.get_webview_window("oauth") {
+                    let _ = window.close();
+                }
+                return false;
+            }
+            true
+        })
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Store a token in the OS keychain
+#[tauri::command]
+pub async fn store_token(service: String, key: String, value: String) -> Result<(), String> {
+    let entry = keyring::Entry::new(&service, &key)
+        .map_err(|e| e.to_string())?;
+    entry.set_password(&value)
+        .map_err(|e| e.to_string())
+}
+
+/// Retrieve a token from the OS keychain
+#[tauri::command]
+pub async fn get_token(service: String, key: String) -> Result<Option<String>, String> {
+    let entry = keyring::Entry::new(&service, &key)
+        .map_err(|e| e.to_string())?;
+    match entry.get_password() {
+        Ok(pw) => Ok(Some(pw)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Clear both access_token and refresh_token from the keychain
+#[tauri::command]
+pub async fn clear_tokens(service: String) -> Result<(), String> {
+    for key in &["access_token", "refresh_token"] {
+        let entry = keyring::Entry::new(&service, key)
+            .map_err(|e| e.to_string())?;
+        match entry.delete_credential() {
+            Ok(()) => {}
+            Err(keyring::Error::NoEntry) => {}
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    Ok(())
+}

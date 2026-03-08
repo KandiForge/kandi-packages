@@ -1,0 +1,19 @@
+{
+  "name": "kandi-packages",
+  "private": true,
+  "description": "Reusable open-source packages from KandiForge",
+  "license": "MIT",
+  "author": "Abstract Class Consulting Inc.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
