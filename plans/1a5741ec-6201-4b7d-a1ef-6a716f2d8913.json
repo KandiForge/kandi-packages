@@ -1,0 +1,12 @@
+{
+  "assigned": "local-user",
+  "created_at": "2026-03-08T20:13:53.177469Z",
+  "created_by": "local-user",
+  "description": null,
+  "id": "1a5741ec-6201-4b7d-a1ef-6a716f2d8913",
+  "name": "New Plan",
+  "spec_metadata": null,
+  "state": "draft",
+  "updated_at": "2026-03-08T20:13:53.177469Z",
+  "updated_by": "local-user"
+}
