@@ -1,48 +1,57 @@
 /**
- * Hello.coop OIDC provider
+ * Hello.coop OIDC provider — powered by Arctic's generic OAuth2Client
  *
- * Implements the full authorization code flow:
- * 1. Build authorize URL → redirect user to Hello.coop wallet
- * 2. Receive callback with code → exchange for tokens
- * 3. Fetch userinfo → return normalized profile
+ * Hello.coop is not a built-in Arctic provider, so we use the generic client.
+ * Arctic handles auth URL building + code→token exchange.
+ * Userinfo fetch remains manual.
+ *
+ * Hello.coop acts as an OIDC gateway — it can route to upstream providers
+ * (Google, Apple, Facebook, etc.) via the provider_hint parameter.
  */
 
+import { OAuth2Client } from 'arctic';
 import type { HelloCoopCredentials, OAuthProfile } from '../types.js';
 
 const AUTHORIZE_URL = 'https://wallet.hello.coop/authorize';
 const TOKEN_URL = 'https://wallet.hello.coop/oauth/token';
 const USERINFO_URL = 'https://wallet.hello.coop/oauth/userinfo';
 
-/** Build the Hello.coop authorization URL */
+/** Create an Arctic OAuth2Client for Hello.coop */
+export function createHelloCoopClient(
+  credentials: HelloCoopCredentials,
+  redirectUri: string,
+): OAuth2Client {
+  // Hello.coop is a public client (no client_secret for the authorize flow).
+  // The token exchange sends client_id in the body via Arctic's generic client.
+  return new OAuth2Client(credentials.clientId, null, redirectUri);
+}
+
+/** Build the Hello.coop authorization URL via Arctic */
 export function buildHelloCoopAuthUrl(
+  client: OAuth2Client,
   credentials: HelloCoopCredentials,
   params: {
-    redirectUri: string;
     state: string;
     nonce: string;
   },
 ): string {
-  const url = new URL(AUTHORIZE_URL);
-  url.searchParams.set('client_id', credentials.clientId);
-  url.searchParams.set('redirect_uri', params.redirectUri);
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', credentials.scopes ?? 'openid email profile picture');
-  url.searchParams.set('state', params.state);
+  const scopes = (credentials.scopes ?? 'openid email profile picture').split(' ');
+  const url = client.createAuthorizationURL(AUTHORIZE_URL, params.state, scopes);
   url.searchParams.set('nonce', params.nonce);
   return url.toString();
 }
 
 /** Build Hello.coop authorize URL with a provider hint (google, apple, etc.) */
 export function buildHelloCoopAuthUrlWithHint(
+  client: OAuth2Client,
   credentials: HelloCoopCredentials,
   params: {
-    redirectUri: string;
     state: string;
     nonce: string;
     providerHint?: string;
   },
 ): string {
-  const url = buildHelloCoopAuthUrl(credentials, params);
+  const url = buildHelloCoopAuthUrl(client, credentials, params);
   if (params.providerHint) {
     const parsed = new URL(url);
     parsed.searchParams.set('provider_hint', params.providerHint);
@@ -51,29 +60,16 @@ export function buildHelloCoopAuthUrlWithHint(
   return url;
 }
 
-/** Exchange authorization code for tokens */
+/** Exchange authorization code for tokens via Arctic */
 export async function exchangeHelloCoopCode(
-  credentials: HelloCoopCredentials,
+  client: OAuth2Client,
   code: string,
-  redirectUri: string,
 ): Promise<{ id_token: string; access_token: string }> {
-  const response = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: credentials.clientId,
-      code,
-      redirect_uri: redirectUri,
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Hello.coop token exchange failed: ${text}`);
-  }
-
-  return response.json() as Promise<{ id_token: string; access_token: string }>;
+  const tokens = await client.validateAuthorizationCode(TOKEN_URL, code, null);
+  return {
+    access_token: tokens.accessToken(),
+    id_token: tokens.idToken(),
+  };
 }
 
 /** Fetch user profile from Hello.coop userinfo endpoint */

@@ -47,6 +47,7 @@ import {
 } from './jwt.js';
 import { generateState, verifyState, generateNonce, extractBearerToken } from './security.js';
 import {
+  createHelloCoopClient,
   buildHelloCoopAuthUrlWithHint,
   exchangeHelloCoopCode,
   fetchHelloCoopProfile,
@@ -54,6 +55,7 @@ import {
 import { verifyAppleIdToken } from './providers/apple.js';
 import { verifyGoogleIdToken } from './providers/google.js';
 import {
+  createFacebookClient,
   buildFacebookAuthUrl,
   exchangeFacebookCode,
   fetchFacebookProfile,
@@ -103,6 +105,16 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
     }
     return `${config.baseUrl}${callbackPath}`;
   }
+
+  // --- Arctic client instances (lazy, created once) ---
+
+  const facebookClient = config.providers.facebook
+    ? createFacebookClient(config.providers.facebook, getRedirectUri())
+    : null;
+
+  const hellocoopClient = config.providers.hellocoop
+    ? createHelloCoopClient(config.providers.hellocoop, getRedirectUri())
+    : null;
 
   // --- User upsert with account linking ---
 
@@ -237,25 +249,21 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
       clientType,
     });
 
-    const redirectUri = getRedirectUri();
-
     // Hello.coop handles all providers via provider_hint
-    if (config.providers.hellocoop && provider !== 'facebook') {
+    if (hellocoopClient && config.providers.hellocoop && provider !== 'facebook') {
       const providerHint = provider === 'hellocoop' ? undefined : provider;
       const authUrl = buildHelloCoopAuthUrlWithHint(
+        hellocoopClient,
         config.providers.hellocoop,
-        { redirectUri, state, nonce, providerHint },
+        { state, nonce, providerHint },
       );
       res.redirect(authUrl);
       return;
     }
 
-    // Direct Facebook OAuth
-    if (provider === 'facebook' && config.providers.facebook) {
-      const authUrl = buildFacebookAuthUrl(config.providers.facebook, {
-        redirectUri,
-        state,
-      });
+    // Direct Facebook OAuth via Arctic
+    if (provider === 'facebook' && facebookClient) {
+      const authUrl = buildFacebookAuthUrl(facebookClient, state);
       res.redirect(authUrl);
       return;
     }
@@ -302,23 +310,14 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
 
     try {
       let profile: OAuthProfile;
-      const redirectUri = getRedirectUri();
 
-      if (stateData.provider === 'facebook' && config.providers.facebook) {
-        // Facebook: exchange code for token, then fetch profile
-        const fbToken = await exchangeFacebookCode(
-          config.providers.facebook,
-          code,
-          redirectUri,
-        );
+      if (stateData.provider === 'facebook' && facebookClient) {
+        // Facebook: exchange code via Arctic, then fetch profile
+        const fbToken = await exchangeFacebookCode(facebookClient, code);
         profile = await fetchFacebookProfile(fbToken);
-      } else if (config.providers.hellocoop) {
-        // Hello.coop: exchange code for tokens, then fetch userinfo
-        const tokens = await exchangeHelloCoopCode(
-          config.providers.hellocoop,
-          code,
-          redirectUri,
-        );
+      } else if (hellocoopClient) {
+        // Hello.coop: exchange code via Arctic, then fetch userinfo
+        const tokens = await exchangeHelloCoopCode(hellocoopClient, code);
         profile = await fetchHelloCoopProfile(tokens.access_token);
       } else {
         redirectWithError(res, 'No provider configured for callback', stateData.returnUrl, stateData.clientType);

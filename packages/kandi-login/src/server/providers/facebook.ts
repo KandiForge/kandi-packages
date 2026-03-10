@@ -1,56 +1,47 @@
 /**
- * Facebook OAuth provider
+ * Facebook OAuth provider — powered by Arctic
  *
- * Implements the authorization code flow:
- * 1. Build authorize URL → redirect user to Facebook
- * 2. Receive callback with code → exchange for access token
- * 3. Fetch user profile from Graph API → return normalized profile
+ * 1. Arctic handles auth URL building + code→token exchange
+ * 2. Profile fetch from Graph API remains manual (Arctic doesn't fetch profiles)
  */
 
+import { Facebook, OAuth2RequestError } from 'arctic';
 import type { FacebookCredentials, OAuthProfile } from '../types.js';
 
-const AUTHORIZE_URL = 'https://www.facebook.com/v19.0/dialog/oauth';
-const TOKEN_URL = 'https://graph.facebook.com/v19.0/oauth/access_token';
 const PROFILE_URL = 'https://graph.facebook.com/v19.0/me';
 
-/** Build the Facebook authorization URL */
-export function buildFacebookAuthUrl(
+/** Create an Arctic Facebook client instance */
+export function createFacebookClient(
   credentials: FacebookCredentials,
-  params: {
-    redirectUri: string;
-    state: string;
-  },
+  redirectUri: string,
+): Facebook {
+  return new Facebook(credentials.appId, credentials.appSecret, redirectUri);
+}
+
+/** Build the Facebook authorization URL via Arctic */
+export function buildFacebookAuthUrl(
+  client: Facebook,
+  state: string,
 ): string {
-  const url = new URL(AUTHORIZE_URL);
-  url.searchParams.set('client_id', credentials.appId);
-  url.searchParams.set('redirect_uri', params.redirectUri);
-  url.searchParams.set('state', params.state);
-  url.searchParams.set('scope', 'email,public_profile');
-  url.searchParams.set('response_type', 'code');
+  const url = client.createAuthorizationURL(state, ['email', 'public_profile']);
   return url.toString();
 }
 
-/** Exchange authorization code for an access token */
+/** Exchange authorization code for an access token via Arctic */
 export async function exchangeFacebookCode(
-  credentials: FacebookCredentials,
+  client: Facebook,
   code: string,
-  redirectUri: string,
 ): Promise<string> {
-  const url = new URL(TOKEN_URL);
-  url.searchParams.set('client_id', credentials.appId);
-  url.searchParams.set('client_secret', credentials.appSecret);
-  url.searchParams.set('code', code);
-  url.searchParams.set('redirect_uri', redirectUri);
-
-  const response = await fetch(url.toString());
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Facebook token exchange failed: ${text}`);
+  try {
+    const tokens = await client.validateAuthorizationCode(code);
+    return tokens.accessToken();
+  } catch (e) {
+    // Facebook returns non-RFC-compliant errors
+    if (e instanceof OAuth2RequestError) {
+      throw new Error(`Facebook token exchange failed: ${e.code} ${e.description}`);
+    }
+    throw e;
   }
-
-  const data = await response.json() as { access_token: string };
-  return data.access_token;
 }
 
 /** Fetch user profile from Facebook Graph API */
