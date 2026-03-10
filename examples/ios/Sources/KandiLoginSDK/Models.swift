@@ -44,6 +44,22 @@ public struct KandiUser: Codable, Sendable, Equatable {
     public let avatarUrl: String?
     public let role: String
 
+    public init(
+        id: String,
+        email: String,
+        name: String,
+        displayName: String? = nil,
+        avatarUrl: String? = nil,
+        role: String
+    ) {
+        self.id = id
+        self.email = email
+        self.name = name
+        self.displayName = displayName
+        self.avatarUrl = avatarUrl
+        self.role = role
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case email
@@ -61,6 +77,12 @@ public struct TokenResponse: Codable, Sendable {
     public let refreshToken: String
     public let expiresIn: Int
 
+    public init(accessToken: String, refreshToken: String, expiresIn: Int) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.expiresIn = expiresIn
+    }
+
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
@@ -73,6 +95,11 @@ public struct TokenResponse: Codable, Sendable {
 public struct SeedResponse: Codable, Sendable {
     public let success: Bool
     public let seeded: [SeededPersona]
+
+    public init(success: Bool, seeded: [SeededPersona]) {
+        self.success = success
+        self.seeded = seeded
+    }
 }
 
 public struct SeededPersona: Codable, Sendable {
@@ -80,12 +107,23 @@ public struct SeededPersona: Codable, Sendable {
     public let name: String
     public let email: String
     public let role: String
+
+    public init(id: String, name: String, email: String, role: String) {
+        self.id = id
+        self.name = name
+        self.email = email
+        self.role = role
+    }
 }
 
 // MARK: - Personas Response
 
 public struct PersonasResponse: Codable, Sendable {
     public let personas: [Persona]
+
+    public init(personas: [Persona]) {
+        self.personas = personas
+    }
 }
 
 public struct Persona: Codable, Sendable, Identifiable {
@@ -93,6 +131,13 @@ public struct Persona: Codable, Sendable, Identifiable {
     public let name: String
     public let email: String
     public let role: String
+
+    public init(id: String, name: String, email: String, role: String) {
+        self.id = id
+        self.name = name
+        self.email = email
+        self.role = role
+    }
 }
 
 // MARK: - Errors

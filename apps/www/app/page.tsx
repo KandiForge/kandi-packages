@@ -4,12 +4,12 @@ const packages = [
   {
     name: 'kandi-login',
     description:
-      'Universal OAuth login for React + Node.js. Complete client components AND bundled auth server — no separate backend needed.',
+      'Multi-platform authentication framework. 5 Client SDKs connect to 1 server SDK — Web, Electron, Tauri, iOS, and Android.',
     version: '0.1.0',
     href: '/packages/kandi-login',
     accentColor: '#00D9FF',
     icon: '🔐',
-    tags: ['React', 'OAuth', 'JWT', 'Tauri', 'Electron', 'MUI', 'Tailwind'],
+    tags: ['React', 'Electron', 'Tauri', 'iOS', 'Android', 'OAuth', 'JWT', '5 Client SDKs'],
     testCount: 12,
   },
 ];

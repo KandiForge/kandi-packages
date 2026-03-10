@@ -1,12 +1,37 @@
 # kandi-login
 
-Universal OAuth login for React + Node.js. Complete client components AND bundled auth server — no separate backend needed.
+Multi-platform authentication framework providing 5 client SDKs that connect to a single Node.js server SDK. Supports **Web (React)**, **Electron**, **Tauri (Rust)**, **iOS (Swift)**, and **Android (Kotlin/Compose)**.
 
-Works in **Tauri**, **Electron**, and **Web** with **MUI**, **Tailwind**, or **headless** rendering. Supports **Apple**, **Google**, **Facebook**, and **Hello.coop** OAuth providers.
+Complete client components AND bundled auth server — no separate backend needed. Works with **MUI**, **Tailwind**, or **headless** rendering. Supports **Apple**, **Google**, **Facebook**, and **Hello.coop** OAuth providers.
 
 ---
 
 ## Architecture
+
+```
+┌─────────────────────────────────────┐
+│           CLIENT SDKs               │
+│                                     │
+│  Web (React)     → Next.js, Vite   │
+│  Electron        → Desktop (macOS,  │
+│                    Windows, Linux)   │
+│  Tauri           → Desktop (Rust)   │
+│  iOS (Swift)     → iPhone, iPad     │
+│  Android         → Kotlin/Compose   │
+└──────────────┬──────────────────────┘
+               │  HTTPS
+┌──────────────▼──────────────────────┐
+│        NODE.JS SERVER SDK           │
+│  kandi-login/server                 │
+│  createAuthServer()                 │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│         YOUR DATABASE               │
+└─────────────────────────────────────┘
+```
+
+### Detailed Server Flow
 
 ```
 ┌─────────────────────────────────────┐     ┌──────────────────────────────────┐
@@ -127,6 +152,61 @@ function Header() {
   return <MuiLoginChip variant="glass" />;
 }
 ```
+
+---
+
+## Client SDKs
+
+kandi-login provides 5 client SDKs that all connect to the same Node.js server SDK.
+
+| SDK | Language | Platform | Example |
+|-----|----------|----------|---------|
+| Web (React) | TypeScript | Browser, SSR | `examples/nextjs/`, `examples/vite/` |
+| Electron | TypeScript | macOS, Windows, Linux | `examples/electron/` |
+| Tauri | TypeScript + Rust | macOS, Windows, Linux | `examples/tauri/` |
+| iOS | Swift | iPhone, iPad | `examples/ios/` |
+| Android | Kotlin | Android 7+ | `examples/android/` |
+
+---
+
+## Test Personas
+
+kandi-login has a **built-in test persona system** designed for automated testing. Test personas **bypass the OAuth login handshake** entirely, allowing test harnesses (Playwright, Cypress, XCTest, Espresso, etc.) to authenticate without a browser flow.
+
+### How It Works
+
+There is a built-in **System Administrator** account included with the `admin` role. The system admin can create test personas that bypass OAuth. This works via an **API key/secret pair** — test clients present the key and secret and receive a real auth token directly. No browser flow needed.
+
+**The flow:** `POST /test/login-as { personaId, apiKey, apiSecret }` returns real JWT tokens.
+
+Tokens returned are **identical to production tokens** — same JWT structure, same claims, same `UserAdapter` flow. The only difference is that the OAuth handshake is skipped.
+
+### Test Persona API
+
+```
+POST /test/seed              → Create personas in database
+GET  /test/personas          → List available personas
+POST /test/login-as          → Get real JWTs for a persona (bypasses OAuth)
+```
+
+### Default Personas
+
+| ID | Name | Role | Email |
+|----|------|------|-------|
+| `admin-alex` | Alex Admin | admin | alex@test.kandi.dev |
+| `designer-dana` | Dana Designer | user | dana@test.kandi.dev |
+| `viewer-val` | Val Viewer | viewer | val@test.kandi.dev |
+| `new-user-naya` | Naya Newbie | user | naya@test.kandi.dev |
+
+### Why This Matters
+
+- **No OAuth dependency in CI** — tests run without Google/Apple/Facebook credentials
+- **Deterministic users** — same persona IDs, same roles, same emails every run
+- **Real tokens** — the JWTs are signed with your server's secret, validated by `/auth/validate`, and refreshable via `/auth/refresh`
+- **Role coverage** — test admin, standard user, viewer, and new-user flows without manual setup
+- **Framework agnostic** — works with Playwright, Cypress, XCTest, Espresso, or any HTTP client
+
+See the full [Test Personas](#test-personas-1) section below for enable/disable config, custom personas, token encryption details, and integration test examples. See also [`docs/test-frameworks.md`](./docs/test-frameworks.md) for framework-specific guides.
 
 ---
 
@@ -1263,6 +1343,17 @@ The following XML block is a complete specification for generating a kandi-login
 
   <tests>
     <test-personas enabled="development-only">
+      <description>
+        Built-in test persona system for automated testing.
+        Bypasses OAuth login handshake via API key/secret pair.
+        Test clients present apiKey + apiSecret and receive real auth tokens directly.
+        Tokens are identical to production — same JWT structure, same claims, same UserAdapter flow.
+        See docs/test-frameworks.md for Playwright, Cypress, XCTest, and Espresso guides.
+      </description>
+      <system-admin>
+        Built-in System Administrator account with admin role.
+        Can create and manage test personas.
+      </system-admin>
       <persona id="admin-alex" name="Alex Admin" role="admin" email="alex@test.kandi.dev" />
       <persona id="designer-dana" name="Dana Designer" role="user" email="dana@test.kandi.dev" />
       <persona id="viewer-val" name="Val Viewer" role="viewer" email="val@test.kandi.dev" />
@@ -1270,9 +1361,15 @@ The following XML block is a complete specification for generating a kandi-login
       <endpoints>
         POST /test/seed — creates personas in DB via UserAdapter
         GET /test/personas — lists available personas
-        POST /test/login-as { personaId } — signs real JWTs for persona
+        POST /test/login-as { personaId, apiKey, apiSecret } — bypasses OAuth, signs real JWTs for persona
       </endpoints>
+      <auth-mechanism>
+        API key/secret pair required for test login.
+        Flow: POST /test/login-as { personaId, apiKey, apiSecret } → returns real JWT tokens.
+        No browser flow or OAuth provider interaction needed.
+      </auth-mechanism>
       <token-encryption>AES-256-GCM, same pattern as production</token-encryption>
+      <docs>docs/test-frameworks.md</docs>
     </test-personas>
 
     <server-tests>
@@ -1477,6 +1574,7 @@ Detailed architecture diagrams, flow charts, and additional implementation examp
 - **[Architecture](./docs/architecture.md)** — System overview, module dependency graph, OAuth flow diagrams, JWT structure, encryption details, platform detection
 - **[Examples](./docs/examples.md)** — Complete working implementations for Next.js + Supabase, Express + Prisma, Tauri desktop, and test persona integration tests
 - **[Migrations](./docs/migrations/)** — Ready-to-run database scripts: [`001_users_table.sql`](./docs/migrations/001_users_table.sql), [`.prisma`](./docs/migrations/001_users_table.prisma), [`.drizzle.ts`](./docs/migrations/001_users_table.drizzle.ts), [`.mongo.ts`](./docs/migrations/001_users_table.mongo.ts)
+- **[Test Frameworks](./docs/test-frameworks.md)** — Integration guides for Playwright, Cypress, XCTest, and Espresso using the test persona system
 
 ---
 

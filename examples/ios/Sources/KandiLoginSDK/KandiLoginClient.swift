@@ -7,7 +7,7 @@
 import AuthenticationServices
 import Foundation
 
-public final class KandiLoginClient: Sendable {
+public final class KandiLoginClient: @unchecked Sendable {
 
     // MARK: - Properties
 

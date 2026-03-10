@@ -1,14 +1,4 @@
-use serde::Deserialize;
 use tauri::Emitter;
-
-// ---------------------------------------------------------------------------
-// Command arguments
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Deserialize)]
-pub struct StartOAuthArgs {
-    pub provider: Option<String>,
-}
 
 // ---------------------------------------------------------------------------
 // Tauri commands

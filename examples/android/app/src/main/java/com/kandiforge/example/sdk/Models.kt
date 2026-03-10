@@ -10,16 +10,16 @@ data class KandiUser(
     val id: String,
     val email: String,
     val name: String? = null,
-    @SerialName("displayName") val displayName: String? = null,
-    @SerialName("avatarUrl") val avatarUrl: String? = null,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
     val role: String? = null,
 )
 
 @Serializable
 data class TokenResponse(
-    @SerialName("accessToken") val accessToken: String,
-    @SerialName("refreshToken") val refreshToken: String,
-    @SerialName("expiresIn") val expiresIn: Long,
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("refresh_token") val refreshToken: String,
+    @SerialName("expires_in") val expiresIn: Long,
 )
 
 @Serializable

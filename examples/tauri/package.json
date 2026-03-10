@@ -16,7 +16,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^7.3.1",
     "@tauri-apps/api": "^2.5.0",
-    "kandi-login": "workspace:*",
+    "kandi-login": "*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
