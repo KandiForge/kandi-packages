@@ -1,0 +1,38 @@
+{
+  "name": "@kandi-packages/example-electron",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron + React example demonstrating kandi-login desktop integration",
+  "license": "MIT",
+  "author": "KandiForge",
+  "type": "module",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "build": "tsc && vite build && node scripts/build-main.mjs",
+    "preview": "electron .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "kandi-login": "workspace:*",
+    "@mui/material": "^7.3.1",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "vite": "^6.3.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "typescript": "^5.8.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "electron-builder": "^25.0.0",
+    "esbuild": "^0.25.0",
+    "concurrently": "^9.0.0",
+    "wait-on": "^8.0.0"
+  }
+}
