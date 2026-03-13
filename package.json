@@ -6,8 +6,8 @@
   "author": "KandiForge",
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "examples/*"
+    "www",
+    "www/api"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
