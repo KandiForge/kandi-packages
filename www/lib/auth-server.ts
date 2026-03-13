@@ -8,7 +8,7 @@ export function getAuth(): AuthServer {
     _auth = createAuthServer({
       jwt: {
         secret: process.env.JWT_SECRET!,
-        issuer: process.env.JWT_ISSUER ?? 'api.packages.kandiforge.com',
+        issuer: process.env.JWT_ISSUER ?? 'packages.kandiforge.com',
       },
       providers: {
         google: process.env.GOOGLE_CLIENT_ID
@@ -30,11 +30,11 @@ export function getAuth(): AuthServer {
       },
       userAdapter,
       baseUrl:
-        process.env.BASE_URL ?? 'https://api.packages.kandiforge.com',
+        process.env.BASE_URL ?? 'https://packages.kandiforge.com',
       successRedirectUrl:
-        process.env.SUCCESS_REDIRECT_URL ?? 'https://www.packages.kandiforge.com',
+        process.env.SUCCESS_REDIRECT_URL ?? 'https://packages.kandiforge.com',
       corsOrigins: [
-        'https://www.packages.kandiforge.com',
+        'https://packages.kandiforge.com',
         'http://localhost:3100',
       ],
       enableTestPersonas: true,

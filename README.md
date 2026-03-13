@@ -6,10 +6,7 @@ A public set of MIT-licensed reusable components designed to help agentic develo
 
 ### `www/`
 
-The public-facing website and supporting servers for the kandi-packages project.
-
-- **Website** — Next.js app showcasing all packages, documentation, and live demos (port 3100)
-- **API** (`www/api/`) — Auth server and backend services powering the website (port 3101)
+The public-facing website for the kandi-packages project. A single Next.js app that serves both the website and API routes (`/api/auth/*`).
 
 ### `packages/`
 
