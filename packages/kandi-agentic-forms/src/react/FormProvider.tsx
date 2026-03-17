@@ -105,7 +105,7 @@ export function FormProvider({
   }, []);
 
   // SSE stream
-  const { isConnected } = useFormStream({
+  const { isConnected, disconnect, connect } = useFormStream({
     serverUrl: config.formServerUrl,
     sessionId,
     getToken: config.getToken,
@@ -225,6 +225,26 @@ export function FormProvider({
     setError(null);
   }, [sessionId, formSession, config]);
 
+  // Interrupt current agent turn (disconnect + reconnect SSE)
+  const interrupt = useCallback(() => {
+    disconnect();
+    // Add a system message so the user sees the interruption
+    if (formSession) {
+      formSession.applyEvent({
+        type: 'message',
+        data: {
+          id: `sys_${Date.now()}`,
+          role: 'system',
+          content: 'Agent interrupted.',
+          timestamp: Date.now(),
+        },
+      });
+      setSessionState({ ...formSession.getState() });
+    }
+    // Reconnect after a brief delay to allow the server stream to terminate
+    setTimeout(() => connect(), 500);
+  }, [disconnect, connect, formSession]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -247,7 +267,8 @@ export function FormProvider({
     sendMessage,
     getFiles,
     cancelSession,
-  }), [sessionState, messages, progress, isLoading, isConnected, error, spec, startSession, sendMessage, getFiles, cancelSession]);
+    interrupt,
+  }), [sessionState, messages, progress, isLoading, isConnected, error, spec, startSession, sendMessage, getFiles, cancelSession, interrupt]);
 
   return (
     <FormContext.Provider value={value}>
