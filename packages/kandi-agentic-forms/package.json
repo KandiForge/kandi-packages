@@ -28,6 +28,11 @@
       "import": "./dist/react/headless/index.js",
       "require": "./dist/react/headless/index.cjs"
     },
+    "./react/mui": {
+      "types": "./dist/react/mui/index.d.ts",
+      "import": "./dist/react/mui/index.js",
+      "require": "./dist/react/mui/index.cjs"
+    },
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js",
@@ -56,6 +61,9 @@
     "@ai-sdk/anthropic": "^1.0.0",
     "@ai-sdk/google": "^1.0.0",
     "kandi-login": "*",
+    "@mui/material": "^5.0.0 || ^6.0.0 || ^7.0.0",
+    "@emotion/react": "^11.0.0",
+    "@emotion/styled": "^11.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
@@ -74,6 +82,15 @@
     },
     "kandi-login": {
       "optional": true
+    },
+    "@mui/material": {
+      "optional": true
+    },
+    "@emotion/react": {
+      "optional": true
+    },
+    "@emotion/styled": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -84,6 +101,10 @@
     "ai": "^4.0.0",
     "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/anthropic": "^1.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.3.1",
+    "@mui/icons-material": "^7.3.1",
     "eslint": "^9.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
