@@ -12,6 +12,17 @@ const packages = [
     tags: ['React', 'Electron', 'Tauri', 'iOS', 'Android', 'OAuth', 'JWT', '5 Client SDKs'],
     testCount: 12,
   },
+  {
+    name: 'kandi-agentic-forms',
+    description:
+      'AI-powered conversational form filling. An agent guides users toward a predefined end state via chat + MCP tools — producing structured output files.',
+    version: '0.1.0',
+    href: '/packages/kandi-agentic-forms',
+    accentColor: '#b177ff',
+    icon: '🤖',
+    tags: ['React', 'AI Agent', 'Vercel AI SDK', 'SSE', 'MUI', 'XML Spec', 'MCP'],
+    testCount: 0,
+  },
 ];
 
 export default function HomePage() {
