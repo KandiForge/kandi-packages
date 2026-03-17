@@ -13,7 +13,7 @@ export function isTauri(): boolean {
 
 /** Check if running inside an Electron app */
 export function isElectron(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent.toLowerCase();
   return ua.includes('electron');
 }

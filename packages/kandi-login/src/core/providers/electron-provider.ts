@@ -10,6 +10,8 @@ export class ElectronProvider implements PlatformAdapter {
   readonly platform: Platform = 'electron';
 
   async startOAuth(authUrl: string, _provider?: string): Promise<void> {
+    if (typeof window === 'undefined') return;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const electronAPI = (window as any).electronAPI as
       { openExternal?: (url: string) => Promise<void> } | undefined;
@@ -36,12 +38,16 @@ export class ElectronProvider implements PlatformAdapter {
       });
     }) as EventListener;
 
-    window.addEventListener('kandi-login-callback', onLogin);
-    window.addEventListener('kandi-login-error', onError);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('kandi-login-callback', onLogin);
+      window.addEventListener('kandi-login-error', onError);
+    }
 
     return () => {
-      window.removeEventListener('kandi-login-callback', onLogin);
-      window.removeEventListener('kandi-login-error', onError);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('kandi-login-callback', onLogin);
+        window.removeEventListener('kandi-login-error', onError);
+      }
     };
   }
 }

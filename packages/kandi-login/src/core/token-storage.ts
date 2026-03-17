@@ -24,6 +24,9 @@ export class TauriKeychainStorage implements TokenStorageAdapter {
   }
 
   private async invoke<T>(cmd: string, args: Record<string, unknown>): Promise<T> {
+    if (typeof window === 'undefined') {
+      throw new Error('Tauri API not available (server environment)');
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tauri = (window as any).__TAURI__ as Record<string, unknown> | undefined;
     if (!tauri) {
@@ -84,19 +87,23 @@ export class WebLocalStorage implements TokenStorageAdapter {
   }
 
   async getAccessToken(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem(`${this.prefix}access_token`);
   }
 
   async getRefreshToken(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem(`${this.prefix}refresh_token`);
   }
 
   async storeTokens(accessToken: string, refreshToken: string): Promise<void> {
+    if (typeof window === 'undefined') return;
     localStorage.setItem(`${this.prefix}access_token`, accessToken);
     localStorage.setItem(`${this.prefix}refresh_token`, refreshToken);
   }
 
   async clearTokens(): Promise<void> {
+    if (typeof window === 'undefined') return;
     localStorage.removeItem(`${this.prefix}access_token`);
     localStorage.removeItem(`${this.prefix}refresh_token`);
   }
@@ -120,6 +127,9 @@ interface ElectronAPI {
  */
 export class ElectronSecureStorage implements TokenStorageAdapter {
   private get api(): ElectronAPI {
+    if (typeof window === 'undefined') {
+      throw new Error('Electron secureStorage API not available (server environment)');
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
     if (!electronAPI?.secureStorage) {

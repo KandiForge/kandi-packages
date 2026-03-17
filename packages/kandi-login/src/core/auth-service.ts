@@ -77,7 +77,8 @@ export class AuthService {
     } else {
       // Web: use the current origin + callback path
       const callbackPath = this.config.webCallbackPath ?? DEFAULT_WEB_CALLBACK_PATH;
-      url.searchParams.set('return_url', `${window.location.origin}${callbackPath}`);
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      url.searchParams.set('return_url', `${origin}${callbackPath}`);
     }
 
     if (provider) {

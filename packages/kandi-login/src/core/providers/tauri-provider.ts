@@ -10,6 +10,9 @@ export class TauriProvider implements PlatformAdapter {
   readonly platform: Platform = 'tauri';
 
   private getTauriAPI(): Record<string, unknown> {
+    if (typeof window === 'undefined') {
+      throw new Error('Tauri API not available (server environment)');
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tauri = (window as any).__TAURI__ as Record<string, unknown> | undefined;
     if (!tauri) {

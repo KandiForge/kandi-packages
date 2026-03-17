@@ -39,6 +39,8 @@ export class WebProvider implements PlatformAdapter {
   }
 
   async startOAuth(authUrl: string, _provider?: string): Promise<void> {
+    if (typeof window === 'undefined') return;
+
     const left = window.screenX + (window.innerWidth - POPUP_WIDTH) / 2;
     const top = window.screenY + (window.innerHeight - POPUP_HEIGHT) / 2;
     const features = `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},popup=true`;
