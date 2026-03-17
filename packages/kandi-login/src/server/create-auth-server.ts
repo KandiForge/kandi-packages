@@ -45,6 +45,7 @@ import {
   verifyAccessToken,
   verifyRefreshToken,
 } from './jwt.js';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { generateState, verifyState, generateNonce, extractBearerToken } from './security.js';
 import {
   createHelloCoopClient,
@@ -81,6 +82,49 @@ function getBody(req: AuthRequest): Record<string, unknown> {
   return {};
 }
 
+/** Validate return_url against the configured allowlist to prevent open redirects.
+ *  Deep link schemes are not validated here — desktop flows construct their own
+ *  redirect URL server-side and never use the client-supplied return_url. */
+function isAllowedReturnUrl(url: string, config: AuthServerConfig): boolean {
+  // Parse as http/https URL
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  // Only allow http/https protocols
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return false;
+  }
+
+  // Check against successRedirectUrl origin
+  if (config.successRedirectUrl) {
+    try {
+      const successOrigin = new URL(config.successRedirectUrl).origin;
+      if (parsed.origin === successOrigin) return true;
+    } catch {
+      // invalid successRedirectUrl, skip
+    }
+  }
+
+  // Check against corsOrigins
+  if (config.corsOrigins) {
+    for (const origin of config.corsOrigins) {
+      try {
+        const allowedOrigin = new URL(origin).origin;
+        if (parsed.origin === allowedOrigin) return true;
+      } catch {
+        // corsOrigins may be bare origins like "https://example.com"
+        if (parsed.origin === origin) return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 /** Build the deep link redirect HTML page */
 function deepLinkRedirectHtml(url: string, scheme: string): string {
   const safeUrl = url.replace(/"/g, '&quot;');
@@ -93,6 +137,30 @@ function deepLinkRedirectHtml(url: string, scheme: string): string {
 </div>
 <script>window.location.href=${JSON.stringify(url)};</script>
 </body></html>`;
+}
+
+/** Set CORS headers if the request origin matches config.corsOrigins. */
+function setCorsHeaders(
+  req: AuthRequest,
+  res: AuthResponse,
+  config: AuthServerConfig,
+): void {
+  if (!config.corsOrigins || config.corsOrigins.length === 0) return;
+
+  const rawOrigin = req.headers['origin'];
+  const origin = Array.isArray(rawOrigin) ? rawOrigin[0] : rawOrigin;
+
+  if (config.corsOrigins.includes('*')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (origin && config.corsOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    return; // no match — don't set any CORS headers
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
 export function createAuthServer(config: AuthServerConfig): AuthServer {
@@ -238,8 +306,14 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
    */
   async function handleLogin(req: AuthRequest, res: AuthResponse): Promise<void> {
     const provider = getQueryParam(req.query, 'provider') ?? 'hellocoop';
-    const returnUrl = getQueryParam(req.query, 'return_url');
+    const rawReturnUrl = getQueryParam(req.query, 'return_url');
     const clientType = getQueryParam(req.query, 'client_type');
+
+    // Validate return_url against allowlist to prevent open redirects
+    const returnUrl =
+      rawReturnUrl && isAllowedReturnUrl(rawReturnUrl, config)
+        ? rawReturnUrl
+        : config.successRedirectUrl;
 
     const nonce = generateNonce();
     const state = generateState(stateSecret, {
@@ -318,6 +392,24 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
       } else if (hellocoopClient) {
         // Hello.coop: exchange code via Arctic, then fetch userinfo
         const tokens = await exchangeHelloCoopCode(hellocoopClient, code);
+
+        // Verify ID token signature and nonce claim
+        if (stateData.nonce && tokens.id_token) {
+          try {
+            const JWKS = createRemoteJWKSet(new URL('https://issuer.hello.coop/.well-known/jwks'));
+            const { payload } = await jwtVerify(tokens.id_token, JWKS, {
+              issuer: 'https://issuer.hello.coop',
+            });
+            if (payload.nonce !== stateData.nonce) {
+              redirectWithError(res, 'Nonce mismatch — possible replay attack', stateData.returnUrl, stateData.clientType);
+              return;
+            }
+          } catch {
+            redirectWithError(res, 'ID token verification failed', stateData.returnUrl, stateData.clientType);
+            return;
+          }
+        }
+
         profile = await fetchHelloCoopProfile(tokens.access_token);
       } else {
         redirectWithError(res, 'No provider configured for callback', stateData.returnUrl, stateData.clientType);
@@ -346,6 +438,7 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
    * No redirect — returns JSON with JWTs.
    */
   async function handleNativeLogin(req: AuthRequest, res: AuthResponse): Promise<void> {
+    setCorsHeaders(req, res, config);
     const body = getBody(req);
     const provider = body.provider as string | undefined;
     const idToken = body.id_token as string | undefined;
@@ -402,6 +495,7 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
    * Rolling refresh — a new refresh token is always issued.
    */
   async function handleRefresh(req: AuthRequest, res: AuthResponse): Promise<void> {
+    setCorsHeaders(req, res, config);
     const body = getBody(req);
     const refreshTokenValue = body.refresh_token as string | undefined;
 
@@ -437,6 +531,7 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
    * Validates the access token and returns the user profile.
    */
   async function handleValidate(req: AuthRequest, res: AuthResponse): Promise<void> {
+    setCorsHeaders(req, res, config);
     const token = extractBearerToken(req.headers);
     if (!token) {
       res.status(401).json({ error: 'Missing or invalid Authorization header' });
@@ -465,27 +560,38 @@ export function createAuthServer(config: AuthServerConfig): AuthServer {
    * Stateless logout acknowledgement. Since JWTs are stateless,
    * the token remains valid until expiration. Client should discard tokens.
    */
-  async function handleLogout(_req: AuthRequest, res: AuthResponse): Promise<void> {
+  async function handleLogout(req: AuthRequest, res: AuthResponse): Promise<void> {
+    setCorsHeaders(req, res, config);
     res.json({ success: true });
   }
 
   // --- Test Persona Handlers (guarded) ---
 
+  /** Wrap a handler so CORS headers are set before delegation. */
+  function withCors(
+    handler: (req: AuthRequest, res: AuthResponse) => Promise<void>,
+  ): (req: AuthRequest, res: AuthResponse) => Promise<void> {
+    return async (req, res) => {
+      setCorsHeaders(req, res, config);
+      return handler(req, res);
+    };
+  }
+
   const testHandlers = config.enableTestPersonas
     ? {
-        handleSeedPersonas: createSeedHandler(
+        handleSeedPersonas: withCors(createSeedHandler(
           config.userAdapter,
           config.jwt,
           config.testTokenEncryptionSecret ?? config.jwt.secret,
           config.testPersonas,
-        ),
-        handleListPersonas: createListPersonasHandler(config.testPersonas),
-        handleLoginAs: createLoginAsHandler(
+        )),
+        handleListPersonas: withCors(createListPersonasHandler(config.testPersonas)),
+        handleLoginAs: withCors(createLoginAsHandler(
           config.userAdapter,
           config.jwt,
           config.testTokenEncryptionSecret ?? config.jwt.secret,
           config.testPersonas,
-        ),
+        )),
       }
     : {};
 
