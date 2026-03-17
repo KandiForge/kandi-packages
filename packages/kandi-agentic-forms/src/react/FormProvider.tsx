@@ -53,6 +53,8 @@ export interface FormContextValue {
   getFiles: () => Promise<AgenticOutputFile[]>;
   /** Cancel/delete the current session */
   cancelSession: () => Promise<void>;
+  /** Interrupt the current agent turn (disconnects + reconnects SSE) */
+  interrupt: () => void;
 }
 
 const FormContext = createContext<FormContextValue | null>(null);
