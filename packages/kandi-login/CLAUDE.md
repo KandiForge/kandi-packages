@@ -83,13 +83,10 @@ getUserById(id)                            → user | null
 
 ## Known Issues (v0.1.0)
 
-- `return_url` parameter on `/login` is not validated against an allowlist — open redirect risk
-- Nonce is generated in state token but not verified in Hello.coop callback path
-- `corsOrigins` config field is declared but not implemented — no CORS headers are set by handlers
 - Tokens delivered via URL query parameters in redirect flows (browser history, Referrer leakage)
-- `window.location` accessed without SSR guard in `AuthService.buildLoginUrl`
 - Test endpoints (`/test/*`) have no authentication — protect with network controls
 - `AuthProvider` config must be a stable reference — inline objects cause re-creation on every render
+- OPTIONS preflight handling is not built into the server SDK — host framework must handle OPTIONS routing
 
 ## Examples
 

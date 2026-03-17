@@ -1,6 +1,6 @@
 {
   "name": "kandi-login",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Universal OAuth login component for React — supports Tauri, Electron, and Web with MUI, Tailwind, or headless rendering",
   "license": "MIT",
   "type": "module",
